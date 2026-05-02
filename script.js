@@ -1,173 +1,147 @@
-
-// STEP 1: ADD BOOKMARKS TO BOOK LIST
-
-// Select the form with id bookmarkForm and store in variable named form
+// STEP 1: SELECT ELEMENTS
 const form = document.getElementById('bookmarkForm');
-
-// Create an empty array named bookmarks
-let bookmarks = [];
 const bookmarksList = document.getElementById('bookmarksList');
-
-// STEP 4: CREATE DEFAULT APPLICATION SETTINGS
-const DEFAULT_SETTINGS = Object.freeze({
-  storageKey: "bookmarksData", 
-  categories: ["Work", "Study", "Entertainment"], 
-  defaultCategory: "Work" 
-});
-
-//  FILTER BOOKMARKS VARIABLES
-let currentFilter = 'All';
 const filterButtons = document.querySelectorAll('.filter-btn');
 
-// LOCALSTORAGE FUNCTIONS
+// DATA
+let bookmarks = [];
+let currentFilter = 'All';
 
-// Build saveBookmarks() function
+// DEFAULT SETTINGS
+const DEFAULT_SETTINGS = Object.freeze({
+  storageKey: "bookmarksData",
+  categories: ["Work", "Study", "Entertainment"],
+  defaultCategory: "Work"
+});
+
+// LOCAL STORAGE
 function saveBookmarks() {
-  const bookmarksString = JSON.stringify(bookmarks);
-  localStorage.setItem(DEFAULT_SETTINGS.storageKey, bookmarksString);
+  localStorage.setItem(
+    DEFAULT_SETTINGS.storageKey,
+    JSON.stringify(bookmarks)
+  );
 }
 
-// Build loadBookmarks() function
 function loadBookmarks() {
-  const storedBookmarks = localStorage.getItem(DEFAULT_SETTINGS.storageKey);
-  if (storedBookmarks) {
-    bookmarks = JSON.parse(storedBookmarks);
-  } else {
-    bookmarks = [];
-  }
+  const stored = localStorage.getItem(DEFAULT_SETTINGS.storageKey);
+  bookmarks = stored ? JSON.parse(stored) : [];
 }
-// STEP 2: FILTER BOOKMARKS FUNCTION
+
+// FILTER FUNCTION
 function filterBookmarks(categoryFilter) {
-  // Handle default "All" filter
   if (categoryFilter === 'All') {
-    return bookmarks; 
+    return [...bookmarks]; // ✅ safer copy
   }
 
-  // Filter : create new empty array
-  const filtered = [];
-  // Loop through bookmarks array one by one
-  for (let i = 0; i < bookmarks.length; i++) {
-    if (bookmarks[i].category === categoryFilter) {
-      filtered.push(bookmarks[i]); 
-    }
-  }
-  return filtered;
+  return bookmarks.filter(b => b.category === categoryFilter);
 }
 
-// STEP 3: DELETE BOOKMARK FUNCTION
+// DELETE FUNCTION
 function deleteBookmark(id) {
-  bookmarks = bookmarks.filter(bookmark => bookmark.id!== id);
-  console.log('After delete, bookmarks:', bookmarks); 
+  bookmarks = bookmarks.filter(b => b.id !== id);
 
-  saveBookmarks(); 
-  renderBookmarks(); 
+  saveBookmarks();
+  renderBookmarks();
 }
 
-//  RENDER BOOKMARKS FUNCTION
-// Create function named renderBookmarks
+// RENDER FUNCTION
 function renderBookmarks() {
-  //  Create variable filteredBookmarks and assign filtered result
   const filteredBookmarks = filterBookmarks(currentFilter);
-  console.log('filteredBookmarks:', filteredBookmarks);
 
-  // Set innerHTML = "" to solve duplication problem
   bookmarksList.innerHTML = '';
 
-  if (filteredBookmarks.length === 0) {
-    bookmarksList.innerHTML = '<p>No bookmarks found.</p>';
-    return; 
-  }
+  // Better empty handling
+  if (bookmarks.length === 0) {
+    bookmarksList.innerHTML = '<p>No bookmarks added yet.</p>';
+    return;
+  )
 
-  // Loop through filteredBookmarks array
-  filteredBookmarks.forEach(bookmark => {
-    // Access id, title, url, category
-    const { id, title, url, category } = bookmark;
-
-    // Create new div element and store in bookmarkElement
+  filteredBookmarks.forEach(({ id, title, url, category }) => {
     const bookmarkElement = document.createElement('div');
-    // Add class name bookmark-item dynamically
     bookmarkElement.classList.add('bookmark-item');
 
-    // Create bookmark-info div
     const bookmarkInfo = document.createElement('div');
     bookmarkInfo.classList.add('bookmark-info');
 
-    // Display bookmark title using heading element
     const titleEl = document.createElement('h3');
-    titleEl.textContent = title; 
-    bookmarkInfo.appendChild(titleEl);
+    titleEl.textContent = title;
 
-    // Display URL using anchor element
     const linkEl = document.createElement('a');
-    linkEl.href = url; 
-    linkEl.textContent = url; 
+    linkEl.href = url;
+    linkEl.textContent = url;
     linkEl.target = '_blank';
-    bookmarkInfo.appendChild(linkEl);
+    linkEl.classList.add('bookmark-link');
 
-    // Create div element to display bookmark category
     const categoryEl = document.createElement('div');
-    categoryEl.classList.add('bookmark-category'); 
-    categoryEl.textContent = category; 
+    categoryEl.classList.add('bookmark-category');
+    categoryEl.textContent = category;
+
+    bookmarkInfo.appendChild(titleEl);
+    bookmarkInfo.appendChild(linkEl);
     bookmarkInfo.appendChild(categoryEl);
 
-    // Append bookmark-info to bookmarkElement
-    bookmarkElement.appendChild(bookmarkInfo);
-
-    // Add Delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete';
     deleteBtn.classList.add('delete-btn');
-    deleteBtn.setAttribute('data-id', id); 
+
     deleteBtn.addEventListener('click', () => deleteBookmark(id));
+
+    bookmarkElement.appendChild(bookmarkInfo);
     bookmarkElement.appendChild(deleteBtn);
 
     bookmarksList.appendChild(bookmarkElement);
   });
 }
 
-//  CREATE SUBMIT FUNCTION
-// Create function named addBookMark and accept event parameter e
+// ADD BOOKMARK
 function addBookMark(e) {
-  e.preventDefault(); 
+  e.preventDefault();
 
-  // Get values from input fields using their ids
-  const websiteTitle = document.getElementById('websiteTitle').value.trim();
-  const websiteUrl = document.getElementById('websiteUrl').value.trim();
+  let websiteTitle = document.getElementById('websiteTitle').value.trim();
+  let websiteUrl = document.getElementById('websiteUrl').value.trim();
   let category = document.getElementById('category').value;
 
-  //  Use defaultCategory if user doesn't select
+  //  Validation
+  if (!websiteTitle || !websiteUrl) {
+    alert("Please fill all fields");
+    return;
+  }
+
+  // Fix URL (auto add https)
+  if (!websiteUrl.startsWith('http')) {
+    websiteUrl = 'https://' + websiteUrl;
+  }
+
   if (!category) category = DEFAULT_SETTINGS.defaultCategory;
 
-  // Create object named newBookmark
   const newBookmark = {
-    id: Date.now(), 
-    title: websiteTitle, 
-    url: websiteUrl, 
-    category: category 
+    id: Date.now(),
+    title: websiteTitle,
+    url: websiteUrl,
+    category: category
   };
 
-  // Add newBookmark to bookmarks array using push method
   bookmarks.push(newBookmark);
-  console.log(bookmarks);
 
-  saveBookmarks(); 
-  renderBookmarks(); 
-  form.reset(); 
+  saveBookmarks();
+  renderBookmarks();
+
+  form.reset();
 }
 
-// INIT FUNCTION - CONNECT ALL EVENTS
+// INIT FUNCTION
 function init() {
-  loadBookmarks(); 
+  loadBookmarks();
 
-  //  Attach submit event listener to form
   form.addEventListener('submit', addBookMark);
 
-  //  Loop through filterButtons using forEach
   filterButtons.forEach(button => {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', () => {
       filterButtons.forEach(btn => btn.classList.remove('active'));
       button.classList.add('active');
+
       currentFilter = button.dataset.category;
+
       renderBookmarks();
     });
   });
@@ -175,4 +149,5 @@ function init() {
   renderBookmarks();
 }
 
+// LOAD APP
 document.addEventListener('DOMContentLoaded', init);
